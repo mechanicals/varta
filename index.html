@@ -647,7 +647,43 @@
         .success-message.active {
             display: block;
         }
+
+        /* Spinner for submit button */
+        .button-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007AFF;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg);}
+            100% { transform: rotate(360deg);}
+        }
     </style>
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <!-- Firestore SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script>
+      // Your web app's Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyC_RQ30iJYmvAQ6iL5gOrNoyUChNf7Ko0o",
+        authDomain: "varta-e8f74.firebaseapp.com",
+        projectId: "varta-e8f74",
+        storageBucket: "varta-e8f74.firebasestorage.app",
+        messagingSenderId: "645963069278",
+        appId: "1:645963069278:web:cfb2a207234539505181cf",
+        measurementId: "G-NJM57LREEH"
+      };
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+    </script>
 </head>
 <body>
     <!-- Navigation -->
@@ -826,40 +862,46 @@
         <div class="nav-dot" onclick="goToSlide(7)"></div>
     </div>
 
-    <!-- Waitlist Modal -->
+    <!-- Waitlist Modal (with Success State) -->
     <div class="modal" id="waitlistModal">
-        <div class="modal-content">
-            <span class="close-modal" onclick="closeWaitlistModal()">&times;</span>
-            <h2 style="margin-bottom: 30px; text-align: center;">Join the Waitlist</h2>
-            <form class="waitlist-form" id="waitlistForm" onsubmit="submitWaitlistForm(event)">
-                <div class="form-group">
-                    <label for="name">Full Name</label>
-                    <input type="text" id="name" name="name" required>
-                </div>
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" name="email" required>
-                </div>
-                <div class="form-group">
-                    <label for="company">Company Name</label>
-                    <input type="text" id="company" name="company" required>
-                </div>
-                <div class="form-group">
-                    <label for="role">Your Role</label>
-                    <select id="role" name="role" required>
-                        <option value="">Select your role</option>
-                        <option value="banking">Banking Executive</option>
-                        <option value="technology">Technology Leader</option>
-                        <option value="investor">Investor</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                <button type="submit" class="submit-button">Submit</button>
-                <div class="success-message" id="successMessage">
-                    Thank you for joining our waitlist! We'll be in touch soon.
-                </div>
-            </form>
+      <div class="modal-content" style="text-align:center;">
+        <span class="close-modal" onclick="closeWaitlistModal()">&times;</span>
+        <div id="waitlistFormSection" style="text-align: left;">
+          <h2 style="margin-bottom: 30px; text-align: left;">Join the Waitlist</h2>
+          <form class="waitlist-form" id="waitlistForm" onsubmit="submitWaitlistForm(event)">
+            <div class="form-group">
+              <label for="name">Full Name</label>
+              <input type="text" id="name" name="name" required>
+            </div>
+            <div class="form-group">
+              <label for="email">Email Address</label>
+              <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+              <label for="company">Company Name</label>
+              <input type="text" id="company" name="company" required>
+            </div>
+            <div class="form-group">
+              <label for="role">Your Role</label>
+              <select id="role" name="role" required>
+                <option value="">Select your role</option>
+                <option value="banking">Banking Executive</option>
+                <option value="technology">Technology Leader</option>
+                <option value="investor">Investor</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <button type="submit" class="submit-button">Submit</button>
+          </form>
         </div>
+        <div id="waitlistSuccessSection" style="display:none;">
+          <h2 class="blue-text" style="margin-bottom: 20px;">Success!</h2>
+          <p style="font-size: 18px; color: #1d1d1f;">
+            Thank you for joining the waitlist.<br>
+            We'll be in touch soon!
+          </p>
+        </div>
+      </div>
     </div>
 
     <script>
@@ -942,6 +984,9 @@
         function openWaitlistModal() {
             document.getElementById('waitlistModal').classList.add('active');
             document.body.style.overflow = 'hidden';
+            // Always show form, hide success on open
+            document.getElementById('waitlistFormSection').style.display = '';
+            document.getElementById('waitlistSuccessSection').style.display = 'none';
         }
 
         function closeWaitlistModal() {
@@ -951,22 +996,41 @@
 
         function submitWaitlistForm(event) {
             event.preventDefault();
-            // Here you would typically send the form data to your backend
-            // For now, we'll just show the success message
-            document.getElementById('successMessage').classList.add('active');
-            document.getElementById('waitlistForm').reset();
-            
-            // Close the modal after 2 seconds
-            setTimeout(() => {
-                closeWaitlistModal();
-                document.getElementById('successMessage').classList.remove('active');
-            }, 2000);
+            const submitBtn = document.querySelector('.submit-button');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Processing... <span class="button-spinner"></span>';
+
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const company = document.getElementById('company').value;
+            const role = document.getElementById('role').value;
+
+            db.collection('waitlist').add({
+                name,
+                email,
+                company,
+                role,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                document.getElementById('waitlistForm').reset();
+                // Hide form, show success (no modal close)
+                document.getElementById('waitlistFormSection').style.display = 'none';
+                document.getElementById('waitlistSuccessSection').style.display = '';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Submit';
+            })
+            .catch((error) => {
+                alert('Error submitting form: ' + error.message);
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Submit';
+            });
         }
 
         // Close modal when clicking outside
         window.onclick = function(event) {
-            const modal = document.getElementById('waitlistModal');
-            if (event.target === modal) {
+            const waitlistModal = document.getElementById('waitlistModal');
+            if (event.target === waitlistModal) {
                 closeWaitlistModal();
             }
         }
