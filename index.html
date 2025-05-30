@@ -865,6 +865,17 @@
         let currentSlide = 1;
         const totalSlides = 7;
 
+        // Mobile Menu Functions
+        function toggleMobileMenu() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('active');
+        }
+
+        function closeMobileMenu() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.remove('active');
+        }
+
         function updateSlideCounter() {
             document.getElementById('current-slide').textContent = currentSlide;
             document.getElementById('total-slides').textContent = totalSlides;
